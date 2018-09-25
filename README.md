@@ -1,7 +1,7 @@
 # mycommands
-自作のコマンド集
+自作コマンド集
 
-## Install
+## Installation
 
 ```
 > make
