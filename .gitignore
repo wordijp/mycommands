@@ -1,0 +1,6 @@
+php-linter.bat
+
+internal/php-lint-run.bat
+internal/phpmd-run.bat
+internal/vim-arg.bat
+internal/xexec.bat
