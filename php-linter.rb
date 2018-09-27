@@ -1,5 +1,7 @@
 # 複数のLinterでチェック
 
+require 'parallel'
+
 PHPMD_DEFAULT = 'text codesize,design,unusedcode'
 
 def main(argv)
@@ -13,7 +15,7 @@ def main(argv)
     argv = argv.empty? ? PHPMD_DEFAULT : argv.join(' ')
     print `#{__dir__}/internal/phpmd-run #{argv}`
   when 'multi'
-    linterMulti
+    linterMulti argv.join(' ')
   when 'help'
     usage
   when /.+/
@@ -37,19 +39,31 @@ help: this message
   EOS
 end
 
-def linterMulti
+def linterMulti(phpmdArgv)
   # php -l
+  # NOTE: これは早いので先に済ませる
   msgs = `#{__dir__}/internal/php-lint-run`
   unless msgs.empty?
     print msgs
     exit 0
   end
 
+  # NOTE: 以降は時間がかかるので並列実行
+  
+  argv = phpmdArgv.empty? ? PHPMD_DEFAULT : phpmdArgv.join(' ')
+  # phpmd
+  cmd_phpmd = "#{__dir__}/internal/phpmd-run #{argv}"
   # phan
-  msgs = `#{__dir__}/internal/phan-run`
-  unless msgs.empty?
-    print msgs
-    exit 0
+  cmd_phan = "#{__dir__}/internal/phan-run"
+
+  msgsLst = Parallel.map([cmd_phpmd, cmd_phan], in_threads: 2) do |cmd|
+    `#{cmd}`
+  end
+  msgsLst.each do |_msgs|
+    unless _msgs.empty?
+      print _msgs
+      exit 0
+    end
   end
 end
 
