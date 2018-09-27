@@ -1,5 +1,7 @@
 # 複数のLinterでチェック
 
+PHPMD_DEFAULT = 'text codesize,design,unusedcode'
+
 def main(argv)
   cmd = argv.shift
   case cmd
@@ -8,7 +10,8 @@ def main(argv)
   when 'phan'
     print `#{__dir__}/internal/phan-run`
   when 'phpmd'
-    print `#{__dir__}/internal/phpmd-run #{argv.join(' ')}`
+    argv = argv.empty? ? PHPMD_DEFAULT : argv.join(' ')
+    print `#{__dir__}/internal/phpmd-run #{argv}`
   when 'multi'
     linterMulti
   when 'help'
