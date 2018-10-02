@@ -4,3 +4,7 @@ internal/php-lint-run.bat
 internal/phpmd-run.bat
 internal/vim-arg.bat
 internal/xexec.bat
+
+internal/_preproc.rb
+
+*.exe

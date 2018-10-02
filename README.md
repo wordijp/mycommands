@@ -31,7 +31,7 @@ Golangのgo buildエラー一覧から選択し、gvimで開く
 ## Installation
 
 ```
-> make
+> make && make release
 ```
 
 のあと、このフォルダへパスを通す

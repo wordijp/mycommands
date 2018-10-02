@@ -1,25 +1,58 @@
-SRCS = \
+BASE_EXE	= _origrun.exe
+
+# ---------------------------
+
+BATS	= \
 	php-linter.bat
 
-INTERNAL_SRCS = \
+BATS_INTERNAL	= \
 	internal\php-lint-run.bat \
 	internal\phpmd-run.bat \
 	internal\vim-arg.bat \
 	internal\xexec.bat
 
+EXES			= $(patsubst %, %, $(BATS:.bat=.exe))
+EXES_INTERNAL	= $(patsubst %, %, $(BATS_INTERNAL:.bat=.exe))
+
 # -----------------------------------------------
 
-all: $(SRCS) $(INTERNAL_SRCS)
+all:
+	make -C _origrun
+
+# ---
+
+release: $(BASE_EXE) mklink
 	
-$(SRCS):
-	@cmd /c "mklink $@ _orig.bat"
+$(BASE_EXE): _origrun/$(BASE_EXE)
+	cp -f $< $@
+
+mklink: $(BATS) $(BATS_INTERNAL) $(EXES) $(EXES_INTERNAL) internal\_preproc.rb
 	
-$(INTERNAL_SRCS):
-	@cmd /c "mklink $@ ..\_orig.bat"
+$(BATS):
+	@cmd /c "mklink $@ _origscript.bat"
 	
+$(BATS_INTERNAL):
+	@cmd /c "mklink $@ ..\_origscript.bat"
+
+$(EXES):
+	@cmd /c "mklink $@ _origrun.exe"
+	
+$(EXES_INTERNAL):
+	@cmd /c "mklink $@ ..\_origrun.exe"
+
+internal\_preproc.rb:
+	@cmd /c "mklink $@ ..\_preproc.rb"
+
+# ---
+
 clean:
-	rm -f $(SRCS)
-	rm -f $(INTERNAL_SRCS)
+	make clean -C _origrun
+	rm -f $(BATS)
+	rm -f $(BATS_INTERNAL)
+	rm -f $(BASE_EXE)
+	rm -f $(EXES)
+	rm -f $(EXES_INTERNAL)
+	rm -f internal\_preproc.rb
 
 # -----------------------------------------------
 
