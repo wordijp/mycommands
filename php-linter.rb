@@ -1,6 +1,7 @@
 # 複数のLinterでチェック
 
 require 'parallel'
+require 'open3'
 
 PHPMD_DEFAULT = 'text codesize,design,unusedcode'
 
@@ -8,12 +9,12 @@ def main(argv)
   cmd = argv.shift
   case cmd
   when 'php-l'
-    print `#{__dir__}/internal/php-lint-run`
+    exec "#{__dir__}/internal/php-lint-run"
   when 'phan'
-    print `#{__dir__}/internal/phan-run`
+    exec "#{__dir__}/internal/phan-run"
   when 'phpmd'
     argv = argv.empty? ? PHPMD_DEFAULT : argv.join(' ')
-    print `#{__dir__}/internal/phpmd-run #{argv}`
+    exec "#{__dir__}/internal/phpmd-run #{argv}"
   when 'multi'
     linterMulti argv.join(' ')
   when 'help'
@@ -21,7 +22,7 @@ def main(argv)
   when /.+/
     usage
   else
-    print `#{__dir__}/internal/php-lint-run`
+    exec "#{__dir__}/internal/php-lint-run"
   end
 end
 
@@ -42,9 +43,8 @@ end
 def linterMulti(phpmdArgv)
   # php -l
   # NOTE: これは早いので先に済ませる
-  msgs = `#{__dir__}/internal/php-lint-run`
-  unless msgs.empty?
-    print msgs
+  lines = exec "#{__dir__}/internal/php-lint-run"
+  if lines > 0
     exit 0
   end
 
@@ -65,6 +65,18 @@ def linterMulti(phpmdArgv)
       exit 0
     end
   end
+end
+
+# @return 行数
+def exec(cmd)
+  lines = 0
+  Open3.popen3(cmd) {|_, o|
+    o.each_line do |line|
+      puts line
+      lines += 1
+    end
+  }
+  lines
 end
 
 main ARGV
