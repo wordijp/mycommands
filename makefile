@@ -11,8 +11,10 @@ BATS_INTERNAL	= \
 	internal\vim-arg.bat \
 	internal\xexec.bat
 
-EXES			= $(patsubst %, %, $(BATS:.bat=.exe))
-EXES_INTERNAL	= $(patsubst %, %, $(BATS_INTERNAL:.bat=.exe))
+EXES			= $(patsubst %, %, $(BATS:.bat=.exe)) \
+	loclist-gvim.exe
+EXES_INTERNAL	= $(patsubst %, %, $(BATS_INTERNAL:.bat=.exe)) \
+	internal\phan-run.exe 
 
 # -----------------------------------------------
 
