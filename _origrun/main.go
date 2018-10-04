@@ -72,8 +72,8 @@ func runCommand(cmd *exec.Cmd) (exitCode int, err error) {
 			}
 		}
 	}()
-	go doIO(os.Stdout, oRead, &waitCh, cmd, ioStopCh, &ioWG)
-	go doIO(os.Stderr, eRead, &waitCh, cmd, ioStopCh, &ioWG)
+	go doIO(os.Stdout, oRead, &waitCh, &exitCode, cmd, ioStopCh, &ioWG)
+	go doIO(os.Stderr, eRead, &waitCh, &exitCode, cmd, ioStopCh, &ioWG)
 	err = <-waitCh
 	// コマンド end ---
 
@@ -93,7 +93,7 @@ func runCommand(cmd *exec.Cmd) (exitCode int, err error) {
 	return
 }
 
-func doIO(out *os.File, in io.Reader, waitCh *chan error, cmd *exec.Cmd, ioStopCh chan struct{}, ioWG *sync.WaitGroup) {
+func doIO(out *os.File, in io.Reader, waitCh *chan error, exitCode *int, cmd *exec.Cmd, ioStopCh chan struct{}, ioWG *sync.WaitGroup) {
 	ioWG.Add(1)
 	defer func() { ioWG.Done() }()
 
@@ -110,6 +110,7 @@ func doIO(out *os.File, in io.Reader, waitCh *chan error, cmd *exec.Cmd, ioStopC
 
 		// NOTE: SIGPIPEエミュレート
 		if err != nil {
+			*exitCode = int(syscall.SIGPIPE)
 			*waitCh <- cmd.Process.Kill()
 			break
 		}
