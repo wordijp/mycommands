@@ -17,7 +17,6 @@ import (
 var pattern = regexp.MustCompile(`.exe$`)
 
 func main() {
-	// コマンドの実行
 	bin := pattern.ReplaceAllString(os.Args[0], "")
 	args := append([]string{"/c", "call", bin + ".bat"}, os.Args[1:]...)
 	cmd := exec.Command("cmd", args...)
@@ -31,7 +30,6 @@ func main() {
 }
 
 func runCommand(cmd *exec.Cmd) (exitCode int, err error) {
-	// 外部コマンドとの標準入[エラー]出力を繋げる
 	oRead, err := cmd.StdoutPipe()
 	if err != nil {
 		return
@@ -43,17 +41,15 @@ func runCommand(cmd *exec.Cmd) (exitCode int, err error) {
 	cmd.Stdin = os.Stdin
 
 	waitCh := make(chan error)
-	// シグナル受信
 	sigCh := make(chan os.Signal)
 	// NOTE: SIGPIPEはエミュレート(Windowsでは基本受信出来ない)
 	//signal.Notify(sigCh, os.Interrupt, os.Kill, syscall.SIGPIPE) // SIGPIPE not work(Windows)
 	signal.Notify(sigCh, os.Interrupt, os.Kill)
 
-	// 終了待機(標準[エラー]出力用)
 	ioStopCh := make(chan struct{})
 	ioWG := sync.WaitGroup{}
 
-	// コマンド start
+	// コマンド start ---
 	if err = cmd.Start(); err != nil {
 		return
 	}
@@ -78,17 +74,15 @@ func runCommand(cmd *exec.Cmd) (exitCode int, err error) {
 	}()
 	go doIO(os.Stdout, oRead, &waitCh, cmd, ioStopCh, &ioWG)
 	go doIO(os.Stderr, eRead, &waitCh, cmd, ioStopCh, &ioWG)
-	// コマンド end
 	err = <-waitCh
+	// コマンド end ---
 
 	// NOTE: 標準[エラー]出力は強制終了時も同期を取る
 	close(ioStopCh)
 	ioWG.Wait()
 
 	if err != nil {
-		// エラー検知
 		if err2, ok := err.(*exec.ExitError); ok {
-			// その中の、シグナル(SIGINT:2 等の)エラー検知
 			if s, ok := err2.Sys().(syscall.WaitStatus); ok {
 				err = nil
 				exitCode = s.ExitStatus()
@@ -99,15 +93,14 @@ func runCommand(cmd *exec.Cmd) (exitCode int, err error) {
 	return
 }
 
-func doIO(out *os.File, in io.Reader, waitCh *chan error, cmd *exec.Cmd, stopCh chan struct{}, wg *sync.WaitGroup) {
-	wg.Add(1)
-	defer func() { wg.Done() }()
+func doIO(out *os.File, in io.Reader, waitCh *chan error, cmd *exec.Cmd, ioStopCh chan struct{}, ioWG *sync.WaitGroup) {
+	ioWG.Add(1)
+	defer func() { ioWG.Done() }()
 
 	scanner := bufio.NewScanner(in)
 	for scanner.Scan() {
-		// 終了済みか？
 		select {
-		case <-stopCh:
+		case <-ioStopCh:
 			return
 		default:
 			// no-op
