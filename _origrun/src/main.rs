@@ -28,7 +28,9 @@ fn main() {
     let bat: String = (re.replace(&bin, "") + ".bat").to_string();
     let args: Vec<_> = _args.collect();
 
-    let mut cmd: Child = Command::new(bat)
+    let mut cmd: Child = Command::new("cmd")
+        .arg("/c")
+        .arg(bat)
         .args(args)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

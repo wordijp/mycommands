@@ -1,5 +1,7 @@
 TARGET	= _origrun.exe
 
+SRCS	= src/main.rs
+
 ifeq ($(DEBUG), 1)
 	MODE = debug
 	RFLAGS =
@@ -15,7 +17,7 @@ all: $(TARGET)
 $(TARGET): target\$(MODE)\$(TARGET)
 	cp -f $< $@
 	
-target\$(MODE)\$(TARGET):
+target\$(MODE)\$(TARGET): $(SRCS)
 	cargo build $(RFLAGS)
 	
 clean:
