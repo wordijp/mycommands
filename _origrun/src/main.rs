@@ -30,6 +30,7 @@ fn main() {
 
     let mut cmd: Child = Command::new("cmd")
         .arg("/c")
+        .arg("call")
         .arg(bat)
         .args(args)
         .stdout(Stdio::piped())
