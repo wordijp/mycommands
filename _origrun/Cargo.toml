@@ -1,0 +1,9 @@
+[package]
+name = "_origrun"
+version = "0.1.0"
+authors = ["wordi <wordijp@gmail.com>"]
+
+[dependencies]
+regex = "*"
+crossbeam-channel = "0.2"
+ctrlc = { version = "3.0", features = ["termination"] }
