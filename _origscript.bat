@@ -1,4 +1,4 @@
-@rem ã‚³ãƒãƒ³ãƒ‰ä½œæˆ) mklink new.bat _origscript.bat
+@rem ƒRƒ}ƒ“ƒhì¬) mklink new.bat _origscript.bat
 
 @if exist %~dpn0.sh (
   @bash %~dpn0.sh %*
