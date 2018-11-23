@@ -1,6 +1,9 @@
 TARGET	= _origrun.exe
 
-SRCS	= src/main.rs
+SRCS	= \
+	src/main.rs \
+	src/decodingreader.rs \
+	src/rawbufreader.rs
 
 ifeq ($(DEBUG), 1)
 	MODE = debug
