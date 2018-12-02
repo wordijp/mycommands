@@ -7,3 +7,6 @@ authors = ["wordi <wordijp@gmail.com>"]
 regex = "*"
 crossbeam-channel = "0.2"
 ctrlc = { version = "3.0", features = ["termination"] }
+
+encoding_rs = "0.8"
+memchr = { version = "2", default-features = false }

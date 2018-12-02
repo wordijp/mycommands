@@ -1,11 +1,18 @@
 use std::process::{Child, Command, Stdio};
-use std::io::{stderr, stdout, BufRead, BufReader};
+use std::io::{stdout, stderr};
 use std::env;
 use std::process;
 use std::thread;
 
 extern crate regex;
 use regex::Regex;
+
+extern crate encoding_rs;
+
+mod rawbufreader;
+
+mod decodingreader;
+use decodingreader::DecodingReader;
 
 // スレッド間通信
 //#[macro_use] // for select!
@@ -19,6 +26,7 @@ use std::sync::{Arc, Mutex};
 const SUCCESS: i32 = 0;
 const SIGINT: i32 = 2;
 const SIGPIPE: i32 = 13;
+
 
 fn main() {
     let mut _args = env::args();
@@ -40,7 +48,7 @@ fn main() {
 
     let mtx = Arc::new(Mutex::new(()));
     let stopped = Arc::new(AtomicBool::new(false));
-    
+
     let (quit_out_s, quit_out_r) = channel::bounded(0);
     let quit_out_s = Arc::new(quit_out_s);
 
@@ -49,9 +57,10 @@ fn main() {
         let stopped = stopped.clone();
         let mtx = mtx.clone();
         let quit_out_s = quit_out_s.clone();
-        let out = BufReader::new(cmd.stdout.take().unwrap());
+
+        let mut out = DecodingReader::new(cmd.stdout.take().unwrap());
         thread::spawn(move || {
-            do_io(out, stdout(), quit_out_s.as_ref(), mtx.as_ref(), stopped.as_ref());
+            do_io(&mut out, stdout(), quit_out_s.as_ref(), mtx.as_ref(), stopped.as_ref());
         });
     }
 
@@ -59,10 +68,11 @@ fn main() {
     {
         let stopped = stopped.clone();
         let mtx = mtx.clone();
-        let err = BufReader::new(cmd.stderr.take().unwrap());
         let (_quit_err_s, _) = channel::bounded(0);
+
+        let mut err = DecodingReader::new(cmd.stderr.take().unwrap());
         thread::spawn(move || {
-            do_io(err, stderr(), &_quit_err_s, mtx.as_ref(), stopped.as_ref());
+            do_io(&mut err, stderr(), &_quit_err_s, mtx.as_ref(), stopped.as_ref());
         });
     }
 
@@ -94,12 +104,13 @@ fn main() {
         });
     }
 
+
     let status_code = cmd_wait_r.recv().unwrap();
     process::exit(status_code);
 }
 
 fn do_io<R, W>(
-    reader: BufReader<R>,
+    reader: &mut DecodingReader<R>,
     mut writer: W,
     quit_s: &channel::Sender<i32>,
     mtx: &Mutex<()>,
@@ -108,28 +119,25 @@ fn do_io<R, W>(
     where R: std::io::Read,
           W: std::io::Write
 {
-    let mut it = reader.lines().into_iter();
-    loop {
-        match it.next() {
-            None => {
-                quit_s.send(SUCCESS);
-                return;
-            }
-            Some(msg) => {
-                if stopped.load(Ordering::SeqCst) {
-                    return;
-                }
-                {
-                    let mut _lock = mtx.lock().unwrap();
-                    writeln!(writer, "{}", msg.unwrap());
-                }
-                let ret = writer.flush();
-                if !ret.is_ok() {
-                    stopped.store(true, Ordering::SeqCst);
-                    quit_s.send(SIGPIPE);
-                    return;
-                }
-            }
+    // 行単位の出力
+    let mut line = String::new();
+    while reader.read_line(&mut line).unwrap() > 0 {
+        if stopped.load(Ordering::SeqCst) {
+            return;
         }
+        {
+            let mut _lock = mtx.lock().unwrap();
+            write!(writer, "{}", line);
+        }
+        let ret = writer.flush();
+        if !ret.is_ok() {
+            stopped.store(true, Ordering::SeqCst);
+            quit_s.send(SIGPIPE);
+            return;
+        }
+
+        line.clear(); // clear to reuse the buffer
     }
+
+    quit_s.send(SUCCESS);
 }
