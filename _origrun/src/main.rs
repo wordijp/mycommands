@@ -1,5 +1,5 @@
-fuse std::process::{Child, Command, Stdio};
-use std::io::{stderr, stdout};
+use std::process::{Child, Command, Stdio};
+use std::io::{stdout, stderr};
 use std::env;
 use std::process;
 use std::thread;
@@ -8,9 +8,6 @@ extern crate regex;
 use regex::Regex;
 
 extern crate encoding_rs;
-use encoding_rs::UTF_8;
-use encoding_rs::SHIFT_JIS;
-use encoding_rs::EUC_JP;
 
 mod rawbufreader;
 
@@ -61,7 +58,7 @@ fn main() {
         let mtx = mtx.clone();
         let quit_out_s = quit_out_s.clone();
 
-        let mut out = DecodingReader::new(&[UTF_8, SHIFT_JIS, EUC_JP], cmd.stdout.take().unwrap());
+        let mut out = DecodingReader::new(cmd.stdout.take().unwrap());
         thread::spawn(move || {
             do_io(&mut out, stdout(), quit_out_s.as_ref(), mtx.as_ref(), stopped.as_ref());
         });
@@ -73,7 +70,7 @@ fn main() {
         let mtx = mtx.clone();
         let (_quit_err_s, _) = channel::bounded(0);
 
-        let mut err = DecodingReader::new(&[UTF_8, SHIFT_JIS, EUC_JP], cmd.stderr.take().unwrap());
+        let mut err = DecodingReader::new(cmd.stderr.take().unwrap());
         thread::spawn(move || {
             do_io(&mut err, stderr(), &_quit_err_s, mtx.as_ref(), stopped.as_ref());
         });
@@ -122,10 +119,6 @@ fn do_io<R, W>(
     where R: std::io::Read,
           W: std::io::Write
 {
-    // UTF-8以外をpanicを出さずに取得する方法
-    // TODO: 必要ならば対応
-    //let s = unsafe { std::str::from_utf8_unchecked_mut(&mut buf[..nread]) };
-
     // 行単位の出力
     let mut line = String::new();
     while reader.read_line(&mut line).unwrap() > 0 {
