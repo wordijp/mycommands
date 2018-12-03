@@ -67,60 +67,61 @@ fn decode_utf8_sjis(src: &Vec<u8>, dst: &mut Vec<u8>) -> io::Result<usize> {
 
         if nread > 0 && nread > bad_bytes {
             // Success
-            for s in buf[..nwrite].iter() {
-                dst.push(*s);
-            }
+            dst.extend_from_slice(&buf[..nwrite]);
             src_cur += nread - bad_bytes;
 
             match result {
                 DecoderResult::InputEmpty => {
-                    break;
+                    break; // decode complete
                 }
                 DecoderResult::OutputFull => {
                     eprintln!("buf size is short");
                     assert!(false); // bufが足りない
                 }
                 DecoderResult::Malformed(_, _) => {
-                    continue; // no-op
+                    // no-op
                 }
             }
-        } else if src_cur + 2 <= src_len {
-            // Shift_JISの全角文字としてリトライ
-            let (result, nread, nwrite) =
-                SHIFT_JIS.new_decoder().decode_to_utf8_without_replacement(&src[src_cur..src_cur+2],
-                                                                &mut buf[..],
-                                                                true);
-
-            let bad_bytes: usize = if let DecoderResult::Malformed(bad_bytes, _consumed_bytes) = result {
-                bad_bytes as usize
-            } else {
-                0
-            };
-
-            if nread > 0 && nread > bad_bytes {
-                // Success
-                for s in buf[..nwrite].iter() {
-                    dst.push(*s);
-                }
-                src_cur += nread - bad_bytes;
-            } else {
-                // 失敗、不明バイト
-                dst.push(0x3f); // "?"
-                src_cur += 1;
-            }
-        } else {
-            // 不明バイト
-            dst.push(0x3f); // "?"
-            src_cur += 1;
         }
+
+
+        if let DecoderResult::Malformed(_, _) = result {
+            if src_cur + 2 <= src_len {
+                // Shift_JISの全角文字としてリトライ
+                let (result, nread, nwrite) =
+                    SHIFT_JIS.new_decoder().decode_to_utf8_without_replacement(&src[src_cur..src_cur+2],
+                                                                               &mut buf[..],
+                                                                               true);
+
+                let bad_bytes: usize = if let DecoderResult::Malformed(bad_bytes, _consumed_bytes) = result {
+                    bad_bytes as usize
+                } else {
+                    0
+                };
+
+                if nread > 0 && nread > bad_bytes {
+                    // Success
+                    dst.extend_from_slice(&buf[..nwrite]);
+                    src_cur += nread - bad_bytes;
+
+                    continue;
+                }
+            }
+        }
+
+        // Failed
+
+        // 不明バイト
+        dst.push(0x3f); // "?"
+        src_cur += 1;
     }
 
     // Process EOF
     {
         let (result, _nread, nwrite, _had_errors) =
             utf8_decoder.decode_to_utf8(b"",
-                                       &mut buf[..],
-                                       true);
+                                        &mut buf[..],
+                                        true);
 
         for s in buf[..nwrite].iter() {
             dst.push(*s);
