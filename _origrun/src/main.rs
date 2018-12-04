@@ -82,7 +82,7 @@ fn main() {
         let stopped = stopped.clone();
         ctrlc::set_handler(move || {
             stopped.store(true, Ordering::SeqCst);
-            quit_out_s.send(SIGINT);
+            quit_out_s.send(SIGINT).unwrap();
         }).expect("Error setting Ctrl-C handler");
     }
 
@@ -96,10 +96,10 @@ fn main() {
             //_quit_err_r.recv().unwrap();
             if status == SUCCESS {
                 // 正常終了
-                cmd_wait_s.send(SUCCESS);
+                cmd_wait_s.send(SUCCESS).unwrap()
             } else {
                 cmd.lock().unwrap().kill().expect("Error cmd kill");
-                cmd_wait_s.send(status);
+                cmd_wait_s.send(status).unwrap();
             }
         });
     }
@@ -127,17 +127,17 @@ fn do_io<R, W>(
         }
         {
             let mut _lock = mtx.lock().unwrap();
-            write!(writer, "{}", line);
+            write!(writer, "{}", line).unwrap();
         }
         let ret = writer.flush();
         if !ret.is_ok() {
             stopped.store(true, Ordering::SeqCst);
-            quit_s.send(SIGPIPE);
+            quit_s.send(SIGPIPE).unwrap();
             return;
         }
 
         line.clear(); // clear to reuse the buffer
     }
 
-    quit_s.send(SUCCESS);
+    quit_s.send(SUCCESS).unwrap();
 }
