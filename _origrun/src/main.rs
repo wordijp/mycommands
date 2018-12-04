@@ -139,5 +139,5 @@ fn do_io<R, W>(
         line.clear(); // clear to reuse the buffer
     }
 
-    quit_s.send(SUCCESS).unwrap();
+    quit_s.send(SUCCESS).unwrap_or(());
 }
