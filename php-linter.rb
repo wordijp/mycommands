@@ -34,7 +34,7 @@ mode:
   php-l   linter by php-lint [default]
   phan    linter by phan
   phpmd   linter by phpmd
-  multi   multiple linter(phan, php-l)
+  multi   multiple linter(phan, phpmd, and php-l)
 
 help: this message
   EOS
