@@ -16,21 +16,27 @@ def main(argv):
     argv.pop(0)
 
     cmd = argv.pop(0) if len(argv) > 0 else ''
-    if cmd == 'php-l':
-        exec(cwd+'/internal/php-lint-run')
-    elif cmd == 'phan':
-        exec(cwd+'/internal/phan-run')
-    elif cmd == 'phpmd':
-        argv = PHPMD_DEFAULT if len(argv) == 0 else ' '.join(argv)
-        exec(cwd+'/internal/phpmd-run '+argv)
-    elif cmd == 'multi':
-        linterMulti(argv)
-    elif cmd == 'help':
-        usage()
-    elif re.match('.+', cmd):
-        usage()
-    else:
-        exec(cwd+'/internal/php-lint-run')
+    cmds = cmd.split(',')
+
+    for cmd in cmds:
+        nline = 0
+        if cmd == 'php-l':
+            nline = exec(cwd+'/internal/php-lint-run')
+        elif cmd == 'phan':
+            nline = exec(cwd+'/internal/phan-run')
+        elif cmd == 'phpmd':
+            argv = PHPMD_DEFAULT if len(argv) == 0 else ' '.join(argv)
+            nline = exec(cwd+'/internal/phpmd-run '+argv)
+        elif cmd == 'multi':
+            nline = linterMulti(argv)
+        elif cmd == 'help':
+            nline = usage()
+        else:
+            nline = 1
+            print('unknown command:{}'.format(cmd))
+
+        if nline > 0:
+            break
 
 
 def usage():
@@ -53,7 +59,7 @@ def linterMulti(phpmdArgv):
     # NOTE: これは速いので先に済ませる
     nline = exec(cwd+'/internal/php-lint-run')
     if nline > 0:
-        return
+        return nline
 
     # NOTE: 以降は時間がかかるので並列実行
 
@@ -69,7 +75,8 @@ def linterMulti(phpmdArgv):
         if len(msgs) > 0:
             for msg in msgs:
                 print(msg)
-            return
+            return len(msgs)
+    return 0
 
 def parallelCmd(cmd):
     lines = []
