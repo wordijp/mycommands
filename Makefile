@@ -31,19 +31,19 @@ $(BASE_EXE): _origrun/$(BASE_EXE)
 mklink: $(BATS) $(BATS_INTERNAL) $(EXES) $(EXES_INTERNAL) internal\_preproc.rb
 	
 $(BATS):
-	@cmd /c "mklink $@ _origscript.bat"
+	@cmd /c 'mklink $@ _origscript.bat'
 	
 $(BATS_INTERNAL):
-	@cmd /c "mklink $@ ..\_origscript.bat"
+	@cmd /c 'mklink $@ ..\_origscript.bat'
 
 $(EXES):
-	@cmd /c "mklink $@ _origrun.exe"
+	@cmd /c 'mklink $@ _origrun.exe'
 	
 $(EXES_INTERNAL):
-	@cmd /c "mklink $@ ..\_origrun.exe"
+	@cmd /c 'mklink $@ ..\_origrun.exe'
 
 internal\_preproc.rb:
-	@cmd /c "mklink $@ ..\_preproc.rb"
+	@cmd /c 'mklink $@ ..\_preproc.rb'
 
 # ---
 
